@@ -23,45 +23,35 @@ public class RegistrationServlet extends HttpServlet {
 
 	protected void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
-        log.trace("Opening Registration Form...");
+		log.trace("Opening Registration Form...");
 		request.getRequestDispatcher("register.jsp").forward(request, response);
 	}
 
 	protected void doPost(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
+		log.trace("Getting fields values from Registration Form...");
 		request.setCharacterEncoding("UTF-8");
 		String firstName = request.getParameter("firstName");
 		String lastName = request.getParameter("lastName");
 		String email = request.getParameter("email");
 		String password = request.getParameter("password");
 		String accessLevel = null;
-		
+
 		if ("user".equals(request.getParameter("accessLevel"))) {
 			accessLevel = AccessLevel.USER.toString();
 		} else if ("admin".equals(request.getParameter("accessLevel"))) {
 			accessLevel = AccessLevel.ADMIN.toString();
 		}
-				
-		if (!firstName.isEmpty() && !lastName.isEmpty() && !email.isEmpty() && !password.isEmpty()) { 
-			//userService.saveUser(new User(firstName, lastName, email, password, accessLevel));
-            try{
-                log.trace("Saving user in database...");
-                userService.insert(new User(firstName, lastName, email, password, accessLevel));
 
-            }
-            catch (Exception exception) {
-                log.error("Creating user failed!", exception);
-            }
+		try {
+			log.trace("Saving user in database...");
+			userService.insert(new User(firstName, lastName, email, password, accessLevel));
+		} catch (Exception e) {
+			log.error("Creating user failed!", e);
+		}
 
-            request.setAttribute("userFirstName", firstName);
-			request.setAttribute("userLastName", lastName);
-			request.setAttribute("userAction", "Пройшов ргістрацію!");
-			
-			request.getRequestDispatcher("cabinet.jsp").forward(request, response);
-			return;
-	  	}
-		
-		request.getRequestDispatcher("register.jsp").forward(request, response);
+		response.setContentType("text/html");
+		response.setCharacterEncoding("UTF-8");
+		response.getWriter().write("Success");
 	}
-
 }

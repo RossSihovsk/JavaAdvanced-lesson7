@@ -2,8 +2,10 @@
 package servlets;
 
 
+import com.google.gson.Gson;
 import dao.DAOException;
 import doMain.User;
+import dto.UserLogin;
 import org.apache.log4j.Logger;
 import service.IUserService;
 import service.impl.UserServiceImpl;
@@ -31,62 +33,42 @@ public class LoginServlet extends HttpServlet {
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        log.trace("Getting fields values from Login Form...");
         request.setCharacterEncoding("UTF-8");
         String login = request.getParameter("login");
         String password = request.getParameter("password");
 
         User user = null;
 
-        log.trace("Checking fields values for emptiness...");
-
-        if (!login.isEmpty() && !password.isEmpty()) {
-            try {
-                log.trace("Getting user from database...");
-                user = userService.readByEmail(login);
-            } catch (DAOException e) {
-                log.error("Getting user by email failed!", e);
-            }
+        try {
+            log.trace("Getting user from database...");
+            user = userService.readByEmail(login);
+        } catch (DAOException e) {
+            log.error("Getting user by email failed!", e);
+        }
 
         if (user == null) {
             log.warn("There is no user with login \"" + login + "\" in database!");
-            log.trace("Reopening Login Form...");
-            request.getRequestDispatcher("login.jsp").forward(request, response);
-        }
-        else {
+            response.setContentType("text/html");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write("Пользователя с логином \"" + login + "\" в базе данных не существует!");
+        } else {
             log.trace("Checking user's password for matching database...");
-
-            if (user.getPassword().equals(password)){
-                log.trace("Preparing fields to return...");
-                request.setAttribute("userFirstName", user.getFirstName());
-                request.setAttribute("userLastName", user.getLastName());
-                request.setAttribute("userAction", "увійшов в акаунт");
+            if (user.getPassword().equals(password)) {
                 log.trace("Redirecting to User's account page...");
-                request.getRequestDispatcher("cabinet.jsp").forward(request, response);
-                return;
-            }
-            else {
+                UserLogin userLogin = new UserLogin(user.getEmail(), "jsp/cabinet.jsp");
+                String json = new Gson().toJson(userLogin);
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().write(json);
+            } else {
                 log.warn("User's password doesn't match database!");
-                log.trace("Reopening Login Form...");
-                request.getRequestDispatcher("login.jsp").forward(request, response);
+                response.setContentType("text/html");
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().write("Введенный пароль не совпадает с базой данных!");
             }
         }
 
-        if (user.getPassword().equals(password)) {
-            request.setAttribute("userFirstName", user.getFirstName());
-            request.setAttribute("userLastName", user.getLastName());
-            request.setAttribute("userAction", "авторизувався");
-
-            request.getRequestDispatcher("cabinet.jsp").forward(request, response);
-            return;
-        }
-
-        request.getRequestDispatcher("login.jsp").forward(request, response);
     }
-        else {
-            log.warn("There are still some blank fields yet!");
-            log.trace("Reopening Login Form...");
-            request.getRequestDispatcher("login.jsp").forward(request, response);
-        }
 
-}
 }
